@@ -1,0 +1,12 @@
+{
+  "mappings": [
+    {
+			"source": "/test",
+			"target": "https://github.com/"
+		},
+    {
+			"source": "/test2",
+			"target": "https://github.com/guidozam"
+		}
+  ]
+}
