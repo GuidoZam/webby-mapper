@@ -1,10 +1,12 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
-	viper "github.com/spf13/viper"
+	"encoding/json"
 )
 
 var (
@@ -12,38 +14,19 @@ var (
 )
 
 func main() {
-	// Get the configuration file
-	viper.SetConfigFile("./webby-mapper-service/config.json")
+	config = getConfig()
 
-	// Read the configuration file
-	err := viper.ReadInConfig()
-
-	// Handle errors reading the config file
-	if err != nil {
-		errorMessage := "Error while reading the config file"
-		log.Print(errorMessage, err);
-		panic(errorMessage)
+	if len(config.mappings) == 0 {
+		log.Fatalln("No mapping found in configuration!")
+		os.Exit(500)
 	}
 
-	config := &ConfigurationObject{}
-	// Unmarshal the config file
-	unmarshalErr := viper.Unmarshal(config)
-	// Handle errors reading the config file
-	if unmarshalErr != nil {
-		errorMessage := "Error while Unmarshalling the config file"
-		log.Print(errorMessage, unmarshalErr);
-		panic(errorMessage)
+	if len(config.mappings) > 0 {
+		startServe()
 	}
+}
 
-	mappings := viper.Get("mappings")
-	
-	// TODO: set the array on the config prop
-	//config.mappings = make([]MappingObject, mappings.len())
-
-	log.Println(mappings)
-	log.Println(config)
-	log.Println(config.mappings)
-
+func startServe() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", redirectToTarget)
@@ -61,11 +44,43 @@ func redirectToTarget(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, targetUrl, http.StatusSeeOther)
 }
 
+func getConfig() *ConfigurationObject {
+	// Get current directory
+	directoryPath, directoryError := os.Getwd()
+	if directoryError != nil {
+		log.Fatalln("No directory found!")
+		os.Exit(500)
+	}
+
+	// Load configuration file
+	file, err := ioutil.ReadFile(directoryPath + "/config.json")
+	if err != nil {
+		log.Fatalln("No configuration file found")
+		os.Exit(500)
+	}
+
+	data := &ConfigurationObject{}
+	unmarshallError := json.Unmarshal(file, data)
+	if unmarshallError != nil {
+		log.Fatalln(unmarshallError)
+		os.Exit(500)
+	}
+
+	log.Println(data)
+
+	return data
+}
+
 type ConfigurationObject struct {
-	mappings []MappingObject
+	test string `json:"source"`
+	mappings []MappingObject `json:"mappings"`
 }
 
 type MappingObject struct {
-	source string
-	target string
+	source string `json:"source"`
+	target string `json:"target"`
+}
+
+type Pota struct {
+	test string `json:"test"`
 }
